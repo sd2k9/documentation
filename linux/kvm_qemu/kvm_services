@@ -1,0 +1,111 @@
+#!/bin/bash
+# Function: Start and stop services required for running KVM/QEMU virtual machines
+#           See kvm for caller
+#
+# Installation & Setup:
+# - Copy the file into the directory /usr/local/sbin and make it executable
+# - You can add it to sudo with NOPASSWD option, so you can execute the command without password
+#   <YOUR-USERNAME>   ALL = NOPASSWD: /usr/local/sbin/kvm_services  # KVM Service Control
+#
+#  (c) 2021 Robert Lange (sd2k9@sethdepot.org)
+#  GNU General Public Licence applies
+
+# ------------------------------------------------------------------------------
+
+# *** Settings ***
+# Treat uninitialised variable as error and exit script
+set -u
+# Test mode: True when defined (only echo commands)
+readonly TESTMODE=
+
+# Mode, set by command line
+declare MODE=
+
+# ------------------------------------------------------------------------------
+
+# Abort on tool error (errorcode <> 0)
+function abort_on_error() {
+    local err
+    err=$1
+    shift
+    if [ $err -ne 0 ]; then
+	   echo "Program execution failed with error code $err!"
+	   exit 1
+    fi
+}
+
+
+# Execute this tool
+# Caution: Use "\"text with spaces\"" to escape spaces
+function exec_tool() {
+    echo "$@"
+   if [[ -z "$TESTMODE" ]]; then
+       eval "$@"
+       abort_on_error $?
+   fi
+}
+
+# ------------------------------------------------------------------------------
+
+# *** Command line parsing
+get_options() {
+  local opt
+
+  while [ -n "$*" ] ; do
+      opt="$1"
+      shift
+      case $opt in
+        start|stop)
+          MODE="$opt"
+        ;;
+        *)
+           # Unknown Argument
+  	   echo "Unknown argument!"
+   	   exit 1
+  	   ;;
+      esac
+  done
+}
+
+
+# *** Call Command Line Parsing and Program execution
+# When no options supplied then call help
+if [ -z "${1:-}" ]; then
+    echo "Missing arguments!"
+    exit 1
+else
+    get_options "$@"
+fi
+# When no mode found, call help
+if [ -z "$MODE" ]; then
+    echo "Missing operation mode!"
+    exit 1
+fi
+
+# ------------------------------------------------------------------------------
+
+# *** Now execute actions, or done above
+
+echo "$MODE services"
+exec_tool systemctl $MODE \
+   libvirt-guests.service \
+   libvirtd.service \
+   virt-guest-shutdown.target \
+   virtlockd-admin.socket \
+   virtlockd.service \
+   virtlockd.socket \
+   virtlogd-admin.socket \
+   virtlogd.service \
+   virtlogd.socket
+
+echo "$MODE Firewall (allow network routing for internet access)"
+if [[ "$MODE" == "start" ]]; then
+    # Define KVM-Mode for firehol, see its config file
+    export FIREHOL_USER_FEATURES=kvm
+fi
+# Enfore rebuild of firewall
+exec_tool touch /etc/firehol/firehol.conf
+# Restart
+exec_tool /usr/sbin/firehol condrestart
+# Enfore rebuild of firewall the next time it is restarted
+exec_tool touch /etc/firehol/firehol.conf

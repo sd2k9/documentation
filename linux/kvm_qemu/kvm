@@ -1,0 +1,158 @@
+#!/bin/bash
+# Function:
+# - Control KVM Virtual Machine setup
+#
+# Usage
+# - See help text
+#
+# Notes
+# -
+#
+# TODO
+# -
+#
+#  (c) 2021 Robert Lange (sd2k9@sethdepot.org)
+#  GNU General Public Licence applies
+
+# ------------------------------------------------------------------------------
+
+# *** Settings ***
+# Treat uninitialised variable as error and exit script
+set -u
+# Test mode: True when defined (only echo commands)
+declare TESTMODE
+# Program name
+readonly PRGNAME=${0##*/}
+# Mode, selected from command line
+declare mode=""
+
+# ------------------------------------------------------------------------------
+
+# *** Functions ***
+# Load shared functions
+readonly EXEC_DO_NO_ABORT_ON_ERROR=false
+source ${BASH_SOURCE[0]%/*}/public/bash-functions
+
+# *** Functions ***
+function help_text() {
+cat<<EOF
+Prepare or Stop VM service
+
+Usage: $PRGNAME [opts] mode
+Mode
+  start: Start services, network and firehol routing
+  stop: Stop services, network and firehol routing
+  up: Connect network cable on virtual machine
+  down: Disconnect network cable from virtual machine
+
+Options
+  -t, --test, --dry-run: Dry run, only echo commands
+  -V|--version: Program version
+  -h, --help, -?: Help text
+
+Notes:
+- A lot of stuff is hardcoded in the script or settings
+
+
+EOF
+}
+
+# Print Versionstring
+function versionstring () {
+declare -r VER=0.1.0
+cat<<EOF
+$PRGNAME version $VER
+(c) by Robert Lange (sd2k9@sethdepot.org)
+Licensed under the GNU General Public License
+
+EOF
+}
+
+# ------------------------------------------------------------------------------
+
+# *** Command line parsing
+get_options() {
+  local opt
+
+  while [ -n "$*" ] ; do
+      opt="$1"
+      shift
+      case $opt in
+          -t|--test|--dry-run)
+          # Test Mode
+       	  TESTMODE=1
+      	  ;;
+          -V|--version)
+          # Version output
+          versionstring
+          exit 0
+          ;;
+          -h|--help|'-?')
+          # Hilfetext
+          versionstring
+	  help_text
+          exit 0
+        ;;
+        start|stop|up|down)
+	  if [[ -n $mode ]]; then
+  	     echo "Multiple mode statements! See help text for usage"
+   	     exit 1
+	  fi
+	  mode="$opt"
+        ;;
+        *)
+           # Unknown Argument
+  	   echo "Unknown argument \"$opt\"! See help text for usage"
+   	   exit 1
+  	;;
+      esac
+  done
+}
+
+
+# *** Call Command Line Parsing and Program execution
+# When no options supplied then call help
+if [ -z "${1:-}" ]; then
+    get_options "--help"
+else
+    get_options "$@"
+fi
+
+
+# ------------------------------------------------------------------------------
+
+# *** Now execute actions, or done above
+case $mode in
+  start)
+      echo "Starting KVM Services, Firewall and Network"
+      exec_tool sudo /usr/local/sbin/kvm_services start
+      exec_tool virsh --connect=qemu:///system net-start default
+  ;;
+  stop)
+      echo "Stopping KVM Services, Firewall and Network"
+      exec_tool virsh --connect=qemu:///system net-destroy default
+      exec_tool sudo /usr/local/sbin/kvm_services stop
+  ;;
+  up)
+      echo "Connect network cable"
+      exec_tool virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 up
+  ;;
+  down)
+      echo "Plug network cable"
+      exec_tool virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 down
+  ;;
+  *)
+      # No mode
+      echo "No mode selected! See help text for usage"
+      exit 1
+  ;;
+esac
+
+
+# *** Do whatever you should do
+# All done already above
+
+
+# *** Done
+echo
+echo "Done"
