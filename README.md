@@ -2,7 +2,7 @@ Documentation
 =============
 
 See as Github Page:  
-https://github.com/sd2k9/documentation/
+https://sd2k9.github.io/documentation/
 
 ---
 
