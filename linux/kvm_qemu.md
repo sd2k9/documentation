@@ -188,7 +188,12 @@ Configuration changes
        New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
        ```
    - Access: ssh username@192.168.122.96
-
+1. Optional: Access host's CD/DVD drive from Windows_10 guest
+   - Power down VM
+   - In virt-manager Add Hardware: Storage
+     - Device type: CDROM
+   - In running VM, select the disk in the SATA CDROM setup
+     - ISO files can be also loaded by adding them to the storage pool
 
 ### Configuration Files
 
