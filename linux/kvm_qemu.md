@@ -99,10 +99,10 @@ Configuration changes
   ```
 
 ### Setup VM and Install Windows 10
-- Download Windows 10 image
-  - Source: https://www.microsoft.com/de-de/software-download/windows10ISO
-  - For non-network install updates can be downloaded manually from  
-    https://www.catalog.update.microsoft.com
+1. Download Windows 10 image
+  - Source: [https://www.microsoft.com/de-de/software-download/windows10ISO](https://www.microsoft.com/de-de/software-download/windows10ISO)
+  - For non-network install updates can be downloaded manually from
+    [https://www.catalog.update.microsoft.com](https://www.catalog.update.microsoft.com)
 1. Download Guest drivers
    - These files and the Windows installer ISO must be in a location accessible by user libvirt-qemu
    - [https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso)
@@ -264,18 +264,18 @@ Snapshots
   `qemu-img info [--backing-chain] diskimage.qcow2`
 - Manage snapshots  
   `qemu-img snapshot CMD diskimage.qcow2`
-   - List:   -l
-   - Create: -c NAME
-   - Restore (Apply): -a NAME
-   - Delete: -d NAME
+   - List:   `-l`
+   - Create: `-c NAME`
+   - Restore (Apply): `-a NAME`
+   - Delete: `-d NAME`
 
 Change CDROM in running system
-- Src: https://www.linux-kvm.org/page/Change_cdrom
+- Src: [https://www.linux-kvm.org/page/Change_cdrom](https://www.linux-kvm.org/page/Change_cdrom)
 - Use Monitor interface (Control-Alt-2 or menu)
 - `info block`
 - `eject ide1-cd0`
 - `change ide1-cd0 cdromimage.iso`
 
 More monitor commands
-- https://en.wikibooks.org/wiki/QEMU/Monitor
+- [https://en.wikibooks.org/wiki/QEMU/Monitor](https://en.wikibooks.org/wiki/QEMU/Monitor)
 - Or in monitor: help
