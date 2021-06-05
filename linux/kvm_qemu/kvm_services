@@ -11,7 +11,7 @@
 #  GNU General Public Licence applies
 #
 #  Project URL: https://github.com/sd2k9/documentation
-
+ 
 # ------------------------------------------------------------------------------
 
 # *** Settings ***
@@ -21,7 +21,7 @@ set -u
 readonly TESTMODE=
 
 # Mode, set by command line
-declare MODE=
+declare mode=
 
 # ------------------------------------------------------------------------------
 
@@ -36,7 +36,6 @@ function abort_on_error() {
     fi
 }
 
-
 # Execute this tool
 # Caution: Use "\"text with spaces\"" to escape spaces
 function exec_tool() {
@@ -46,6 +45,17 @@ function exec_tool() {
        abort_on_error $?
    fi
 }
+
+# Reconfigure firehol
+function firehol_reconfig() {
+    # Enforce rebuild of firewall
+    exec_tool touch /etc/firehol/firehol.conf
+    # Restart
+    exec_tool /usr/sbin/firehol condrestart
+    # Enfore rebuild of firewall the next time it is restarted
+    exec_tool touch /etc/firehol/firehol.conf
+}
+
 
 # ------------------------------------------------------------------------------
 
@@ -57,8 +67,8 @@ get_options() {
       opt="$1"
       shift
       case $opt in
-        start|stop)
-          MODE="$opt"
+        start|stop|localnet|internet|stopnet)
+          mode="$opt"
         ;;
         *)
            # Unknown Argument
@@ -79,7 +89,7 @@ else
     get_options "$@"
 fi
 # When no mode found, call help
-if [ -z "$MODE" ]; then
+if [[ -z "$mode" ]]; then
     echo "Missing operation mode!"
     exit 1
 fi
@@ -88,26 +98,41 @@ fi
 
 # *** Now execute actions, or done above
 
-echo "$MODE services"
-exec_tool systemctl $MODE \
-   libvirt-guests.service \
-   libvirtd.service \
-   virt-guest-shutdown.target \
-   virtlockd-admin.socket \
-   virtlockd.service \
-   virtlockd.socket \
-   virtlogd-admin.socket \
-   virtlogd.service \
-   virtlogd.socket
-
-echo "$MODE Firewall (allow network routing for internet access)"
-if [[ "$MODE" == "start" ]]; then
+case $mode in
+  start|stop)
+     echo "$mode services"
+     exec_tool systemctl $mode \
+        libvirt-guests.service \
+        libvirtd.service \
+        virt-guest-shutdown.target \
+        virtlockd-admin.socket \
+        virtlockd.service \
+        virtlockd.socket \
+        virtlogd-admin.socket \
+        virtlogd.service \
+        virtlogd.socket
+  ;;
+  localnet)
+    echo "Firewall: Local access, no outwards network routing"
     # Define KVM-Mode for firehol, see its config file
+    # No outwards network routing
     export FIREHOL_USER_FEATURES=kvm
-fi
-# Enfore rebuild of firewall
-exec_tool touch /etc/firehol/firehol.conf
-# Restart
-exec_tool /usr/sbin/firehol condrestart
-# Enfore rebuild of firewall the next time it is restarted
-exec_tool touch /etc/firehol/firehol.conf
+    firehol_reconfig
+  ;;
+  internet)
+    echo "Firewall: Allow network routing for internet access"
+    # Define KVM-Mode for firehol, see its config file
+    # WITH outwards network routing
+    export FIREHOL_USER_FEATURES=kvm-net
+    firehol_reconfig
+  ;;
+  stopnet)
+      echo "Firewall: Remove network routing"
+      firehol_reconfig
+  ;;
+  *)
+      # No mode
+      echo "No mode selected! See help text for usage"
+      exit 1
+  ;;
+esac

@@ -13,6 +13,8 @@
 #
 #  (c) 2021 Robert Lange (sd2k9@sethdepot.org)
 #  GNU General Public Licence applies
+#
+#  Project URL: https://github.com/sd2k9/documentation
 
 # ------------------------------------------------------------------------------
 
@@ -40,10 +42,14 @@ Prepare or Stop VM service
 
 Usage: $PRGNAME [opts] mode
 Mode
-  start: Start services, network and firehol routing
+  start: Start services, network and firewall local routing
+  startnet: Same as start with internet routing
+  localnet: Reconfigure firewall for local routing
+  internet: Reconfigure firewall for internet routing
   stop: Stop services, network and firehol routing
   up: Connect network cable on virtual machine
   down: Disconnect network cable from virtual machine
+  win98, w98: Start Windows98 in QEMU
 
 Options
   -t, --test, --dry-run: Dry run, only echo commands
@@ -93,7 +99,7 @@ get_options() {
 	  help_text
           exit 0
         ;;
-        start|stop|up|down)
+        start|startnet|localnet|internet|stop|up|down|w98|win98)
 	  if [[ -n $mode ]]; then
   	     echo "Multiple mode statements! See help text for usage"
    	     exit 1
@@ -123,23 +129,49 @@ fi
 
 # *** Now execute actions, or done above
 case $mode in
-  start)
-      echo "Starting KVM Services, Firewall and Network"
+  start|startnet)
+      echo "Starting KVM Services and Virsh Network"
       exec_tool sudo /usr/local/sbin/kvm_services start
       exec_tool virsh --connect=qemu:///system net-start default
+      if [[ "$mode" == "start" ]]; then
+	  echo "Reconfigure firewall for local routing"
+	  exec_tool sudo /usr/local/sbin/kvm_services localnet
+      else
+	  echo "Reconfigure firewall for internet routing"
+	  exec_tool sudo /usr/local/sbin/kvm_services internet
+      fi
+  ;;
+  localnet|internet)
+      echo "Reconfigure firewall for $mode"
+      exec_tool sudo /usr/local/sbin/kvm_services $mode
   ;;
   stop)
-      echo "Stopping KVM Services, Firewall and Network"
+      echo "Stopping KVM Services, Virsh Network and Firewall "
       exec_tool virsh --connect=qemu:///system net-destroy default
       exec_tool sudo /usr/local/sbin/kvm_services stop
+      exec_tool sudo /usr/local/sbin/kvm_services stopnet
   ;;
   up)
       echo "Connect network cable"
       exec_tool virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 up
   ;;
   down)
-      echo "Plug network cable"
+      echo "Pull (unconnect) network cable"
       exec_tool virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 down
+  ;;
+  w98|win98)
+      echo "Starting Windows98 with qemu, Starcraft CD inserted"
+      exec_tool qemu-system-x86_64 \
+         -hda /home/virtualbox/kvm/Win_98.qcow2 \
+         -audiodev pa,id=snd \
+          -machine pcspk-audiodev=snd \
+         -device ac97,audiodev=snd \
+         -m size=512M \
+         -vga cirrus \
+         -parallel none \
+         -rtc base=localtime \
+         -cdrom /home/virtualbox/kvm/iso/starcraft.iso \
+         -boot c
   ;;
   *)
       # No mode

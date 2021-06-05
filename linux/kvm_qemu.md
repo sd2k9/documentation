@@ -78,8 +78,9 @@ start virtualisation support on demand
      is set /etc/firehol/firehol-defaults.conf
      - Otherwise DHCP server traffic for KVM/Windows machine
        may be blocked and no IP address can be assigned
-1. Start everything with: kvm start
-1. Stop with: kvm stop
+1. Start everything with: `kvm start`
+1. Stop with: `kvm stop`
+1. Show more commands with: `kvm --help`
 
 
 Configuration changes
@@ -98,7 +99,10 @@ Configuration changes
   ```
 
 ### Setup VM and Install Windows 10
-
+- Download Windows 10 image
+  - Source: https://www.microsoft.com/de-de/software-download/windows10ISO
+  - For non-network install updates can be downloaded manually from  
+    https://www.catalog.update.microsoft.com
 1. Download Guest drivers
    - These files and the Windows installer ISO must be in a location accessible by user libvirt-qemu
    - [https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso)
@@ -140,6 +144,10 @@ Configuration changes
 1. Start Installation Windows 10
    - Load file driver from CDROM 2: viostor/w10/amd64
    - Load network driver from CDROM 2: drive/NetKVM/w10/amd64
+   - Installation Notes
+     - First account created during installation has always local admin permissions
+     - Create user account without admin rights (Settings/Accounts)
+     - Uninstall apps: Settings/Apps/Apps&Features  + Optional features
    - After Windows 10 installation is done, install the VirtIO tools and drivers
      - Start/Device Manager/Other devices/*
      - Search CDROM 2 for drivers
@@ -226,3 +234,48 @@ Selected commands
 - Check for Leases and addresses  
     virsh --connect=qemu:///system  net-dhcp-leases default  
     virsh --connect=qemu:///system  domifaddr Windows_10 --full
+
+### Direct QVM Usage
+
+When you're using QVM directly (should not be needed for this guide)
+here some notes.
+
+Invocation
+- Running Windows 95/98 System  
+  ```
+  qemu-system-x86_64 \
+    -hda /home/virtualbox/kvm/Win_98.qcow2 \
+    -audiodev pa,id=snd \
+     -machine pcspk-audiodev=snd \
+    -device ac97,audiodev=snd \
+    -m size=512M \
+    -vga cirrus \
+    -parallel none \
+    -rtc base=localtime \
+    -boot c
+  ```
+- Start [Boot] with CDROM mounted, add  
+  `-cdrom win98se.iso [-boot d]`
+- Install with boot disk  
+  `-boot a -fda disk01.img -cdrom Win95_OSR25.iso`
+
+Snapshots
+- Information about disk file  
+  `qemu-img info [--backing-chain] diskimage.qcow2`
+- Manage snapshots  
+  `qemu-img snapshot CMD diskimage.qcow2`
+   - List:   -l
+   - Create: -c NAME
+   - Restore (Apply): -a NAME
+   - Delete: -d NAME
+
+Change CDROM in running system
+- Src: https://www.linux-kvm.org/page/Change_cdrom
+- Use Monitor interface (Control-Alt-2 or menu)
+- `info block`
+- `eject ide1-cd0`
+- `change ide1-cd0 cdromimage.iso`
+
+More monitor commands
+- https://en.wikibooks.org/wiki/QEMU/Monitor
+- Or in monitor: help
