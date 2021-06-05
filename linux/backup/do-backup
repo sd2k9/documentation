@@ -1,0 +1,314 @@
+#!/bin/bash
+# Prepare and Handle USB-Disk for encrypted Backup
+# Must be run as root to allow correct permissions and file access
+# (and also permission change for fuse!)
+#
+#  (c) by Robert Lange <sd2k9@sethdepot.org>
+#  GNU General Public Licence applies
+#
+#  Project URL: https://github.com/sd2k9/documentation
+
+
+# *** Settings ***
+# Treat uninitialised variable as error and exit script
+set -u
+
+# Source device
+# UPDATE: Disk partition name
+readonly MNT_SRC=/dev/sda1
+readonly MNT_CRYPT=backup_offline_crypt
+readonly MNT_DEST=/media/backup_offline
+# readonly GPG_PWDFILE=~USERNAME/.gnupg/backup_passwd.txt.gpg
+# readonly GPG_HOME=~USERNAME/.gnupg/
+readonly PROGNAME=${0##*/}
+
+# When set derive password from existing volume,
+# otherwise prompt for encryption password
+# Query gnupg with string "gnupg"
+# readonly MNT_DERIVE=gnupg
+# readonly MNT_DERIVE=main_crypt
+readonly MNT_DERIVE=
+
+# Virtualbox paths
+# UPDATE: Adapt path accordingly
+readonly VBOX_IN_DIR=/opt/virtualbox/
+readonly VBOX_OUT_DIR=${MNT_DEST}/virtualbox-backup
+
+# Logfile
+readonly RS_LOG=/tmp/do-backup.log
+# local Hostname
+readonly HOSTNAME=$(hostname)
+
+
+# From command line
+# Test mode: True when defined (only echo commands)
+TESTMODE=
+# Selected Command (see help)
+COMMAND_MODE=
+# Option to Command (2nd parameter)
+COMMAND_1P=
+# Option to Command (3nd parameter)
+COMMAND_2P=
+
+
+# *** Functions ***
+# Abort on tool error (errorcode <> 0)
+function abort_on_error() {
+    local err
+    err=$1
+    shift
+    if [ $err -ne 0 ]; then
+	   echo "Program execution failed with error code $err!"
+	   exit 1
+    fi
+}
+
+
+# Execute this tool
+# Caution: Use "\"text with spaces\"" to escape spaces
+function exec_tool() {
+    echo "$@"
+   if [[ -z "$TESTMODE" ]]; then
+       eval "$@"
+       abort_on_error $?
+   fi
+}
+
+root_check() {
+  if [[ $EUID -ne 0 ]]; then
+      echo "This script must be run as root" 1>&2
+      if [[ -z "$TESTMODE" ]]; then # Ignore in testmode
+	  exit 1
+      fi
+ fi
+}
+
+
+# Mount encrypted volume
+do_mount() {
+    if [[ ! -d "$MNT_DEST" ]]; then 
+	echo "Create mount directory"
+	exec_tool mkdir -v $MNT_DEST
+    fi
+
+    echo "Open encrypted volume $MNT_SRC as $MNT_CRYPT ..."
+    if [[ "$MNT_DERIVE" == "gnupg" ]]; then
+	echo "Get password from GnuPG file ${GPG_PWDFILE}"
+	exec_tool gpg --homedir ${GPG_HOME} --decrypt --quiet ${GPG_PWDFILE} \| \
+	          cryptsetup open --type luks $MNT_SRC $MNT_CRYPT --key-file -
+    elif [[ -n "$MNT_DERIVE" ]]; then
+	echo "Derive password from device $MNT_DERIVE"
+	exec_tool /lib/cryptsetup/scripts/decrypt_derived $MNT_DERIVE \| \
+	          cryptsetup open --type luks $MNT_SRC $MNT_CRYPT
+    else
+	echo "Ask for password"
+	exit 1
+	exec_tool cryptsetup open --type luks $MNT_SRC $MNT_CRYPT
+    fi
+
+    echo "Now mount device with btrs to $MNT_DEST"
+    exec_tool mount -t btrfs -o async,noatime,nodev,nosuid,compress=zlib,noexec /dev/mapper/$MNT_CRYPT $MNT_DEST
+}
+
+# Un-Mount encrypted volume
+do_umount() {
+  echo "Unmounting device ..."
+  exec_tool umount $MNT_DEST
+
+  echo "Closing encrypted volume"
+  exec_tool cryptsetup luksClose $MNT_CRYPT
+
+  echo "Remove mount directory"
+  exec_tool rmdir -v $MNT_DEST
+}
+
+
+# Run standard backup
+do_backup() {
+  echo "Do the backup on $HOSTNAME"
+
+  # Preparation
+  exec_tool aptitude clean
+
+
+  # Create user readable logfile
+  exec_tool touch $RS_LOG
+  exec_tool chmod u=rw,og=r $RS_LOG
+
+  # Run backup
+  exec_tool btrfs-backup -c ../../../etc/btrfs-backup/backup-full.conf snap rotate \|\& tee $RS_LOG
+
+  echo "Done - Logfile in $RS_LOG"
+}
+
+# Run Virtualbox backup
+do_vbox_backup() {
+  echo "Do the Virtualbox backup on $HOSTNAME"
+  local file
+  local outfile
+
+
+  # Check for input and output directory existance
+  if [ ! -d "$VBOX_IN_DIR" ]; then
+    echo "Input directory $VBOX_IN_DIR not found!"
+    exit 1
+  fi
+  if [ ! -d "$VBOX_OUT_DIR" ]; then
+    echo "Output directory $VBOX_OUT_DIR not existing!"
+    exit 1
+  fi
+
+  # Run rsync backup
+  # This call checks the file(s) and only transfers differences
+  # exec_tool rsync -aHAXER -hvv --progress --numeric-ids --inplace --no-whole-file \
+  #           --delete-delay \"$VBOX_IN_DIR\" \"$VBOX_OUT_DIR/\"
+  # When the files are always different (like the Work Windows VM) then the
+  # checking takes longer as the actual transfer. So just transfer the files
+  exec_tool rsync -aHAXER -hvv --progress --numeric-ids --inplace --whole-file \
+            --partial --delete-delay \"$VBOX_IN_DIR\" \"$VBOX_OUT_DIR/\"
+
+  # Update timestamp
+  echo "Update Backup timestamp"
+  echo "   date -I > ${VBOX_OUT_DIR}/backup_timestamp.txt"
+  [ -z "$TESTMODE" ] && date -I > ${VBOX_OUT_DIR}/backup_timestamp.txt
+
+  echo "Done"
+}
+
+
+# Check backup size
+do_check_backup_size() {
+  echo "Check backup size"
+  # local TASKS
+
+  # echo "rsnapshot du - DISABLED RUNS TOO LONG"
+  # [ -z "$TESTMODE" ] && rsnapshot du
+  btrfs fi usage ${MNT_DEST}
+}
+
+# Wait for keypress
+do_wait() {
+    echo "Waiting for keypress to continue ..."
+    read -n 1
+}
+
+
+
+# *** Kommandozeile auswerten
+get_options() {
+  local opt
+  local argcounter=1
+
+  while [ -n "$*" ] ; do
+      opt="$1"
+      shift
+      case $opt in
+          -t|--test|--dry-run)
+          # Test Mode
+       	  TESTMODE=1
+      	;;
+          -V|--version)
+          # Version output
+          echo "$PROGNAME"
+          echo "(c) by Robert Lange (sd2k9@sethdepot.org)"
+	  echo "Project URL: https://github.com/sd2k9/documentation"
+          exit 0
+          ;;
+          -h|--help|'-?')
+          # Hilfetext
+          echo "$PROGNAME - Prepare and Handle USB-Disk for encrypted Backup"
+          echo
+          echo "Call: $PROGNAME command [options]"
+          echo
+          echo "General Options:"
+          echo "[-t|--test|--dry-run] - Do not execute commands/burning, only echo"
+          echo "       [-V|--version] - Print program version and exit"
+          echo
+	  echo "Command: mount"
+	  echo "   Mount encrypted disk only"
+	  echo
+	  echo "Command: umount"
+	  echo "   Un-Mount encrypted disk only"
+	  echo
+	  echo "Command: backup"
+	  echo "   Mount, run backup, run virtualbox backup, check size, Wait, Un-Mount"
+	  echo
+	  echo "Command: backup-only"
+	  echo "   Run only the backup itself"
+	  echo
+	  echo "Command: vbox-only"
+	  echo "   Run only the Virtualbox backup"
+	  echo
+          exit 0
+        ;;
+          *)
+          # Store arguments in variables
+     	  case $argcounter in
+      	    1)
+      		COMMAND_MODE="$opt"
+      		;;
+      	    2)
+      		COMMAND_1P="$opt"
+      		;;
+      	    3)
+      		COMMAND_2P="$opt"
+      		;;
+      	    *)
+                  # Too many arguments
+  	        echo "Too many arguments! See help text for usage"
+  		exit 1
+  		;;
+      	  esac
+          #increment argument counter
+          let argcounter++
+      	;;
+      esac
+  done
+}
+
+# *** Call Command Line Parsing
+# When no options supplied then call help
+if [ -z "$*" ]; then
+    get_options "--help"
+else
+    get_options "$@"
+fi
+
+# echo $COMMAND_MODE
+# *** Select working mode ***
+case "$COMMAND_MODE" in
+ mount)
+   root_check
+   do_mount
+   ;;
+ umount)
+   root_check
+   do_umount
+   ;;
+ backup)
+   root_check
+   do_mount
+   do_backup
+   do_vbox_backup
+   do_check_backup_size
+   do_wait
+   do_umount
+   ;;
+ backup-only)
+   root_check
+   do_backup
+   ;;
+ vbox-only)
+   root_check
+   do_vbox_backup
+   ;;
+ *)
+   echo "Unknown Function \"$COMMAND_MODE\" requested!"
+   exit 1
+   ;;
+esac
+
+
+echo
+echo "Done"
+
