@@ -209,20 +209,20 @@ Configuration changes
 
 Selected commands
 
-- List of domains (i.e. virtual machines)
-  - virsh --connect=qemu:///system list --all
-- Network Status
-  - virsh --connect=qemu:///system net-list
-- Start/Stop default network connection
-  - virsh --connect=qemu:///system net-start default
-  - virsh --connect=qemu:///system net-destroy default
-- List network interfaces for domain
-  - virsh --connect=qemu:///system domiflist Windows_10
-- Network cable plug status
-  - virsh --connect=qemu:///system domif-getlink Windows_10 vnet0
-- Connect/Disconnect network cable
-  - virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 up
-  - virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 down
-- Check for Leases and addresses
-  - virsh --connect=qemu:///system  net-dhcp-leases default
-  - virsh --connect=qemu:///system  domifaddr Windows_10 --full
+- List of domains (i.e. virtual machines)  
+    virsh --connect=qemu:///system list --all
+- Network Status  
+    virsh --connect=qemu:///system net-list
+- Start/Stop default network connection  
+    virsh --connect=qemu:///system net-start default  
+    virsh --connect=qemu:///system net-destroy default
+- List network interfaces for domain  
+    virsh --connect=qemu:///system domiflist Windows_10
+- Network cable plug status  
+    virsh --connect=qemu:///system domif-getlink Windows_10 vnet0
+- Connect/Disconnect network cable  
+    virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 up  
+    virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 down
+- Check for Leases and addresses  
+    virsh --connect=qemu:///system  net-dhcp-leases default  
+    virsh --connect=qemu:///system  domifaddr Windows_10 --full
