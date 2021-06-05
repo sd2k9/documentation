@@ -57,7 +57,7 @@ This is usually the case for virtual machine disk image files.
     `sudo cryptsetup close backup_offline_crypt`
 
 ##### Backup Runner Script
-1. Put the backup runner script [do-backup](backup/do-backup) to to system path
+1. Put the backup runner script [do-backup](backup/do-backup) to system path
    ```
    sudo cp -v do-backup /usr/local/bin/
    sudo chown root:root /usr/local/bin/do-backup
