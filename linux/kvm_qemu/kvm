@@ -47,8 +47,8 @@ Mode
   localnet: Reconfigure firewall for local routing
   internet: Reconfigure firewall for internet routing
   stop: Stop services, network and firehol routing
-  up: Connect network cable on virtual machine
-  down: Disconnect network cable from virtual machine
+  netup: Connect network cable on virtual machine
+  netdown: Disconnect network cable from virtual machine
   win98, w98: Start Windows98 in QEMU
 
 Options
@@ -99,7 +99,7 @@ get_options() {
 	  help_text
           exit 0
         ;;
-        start|startnet|localnet|internet|stop|up|down|w98|win98)
+        start|startnet|localnet|internet|stop|netup|netdown|w98|win98)
 	  if [[ -n $mode ]]; then
   	     echo "Multiple mode statements! See help text for usage"
    	     exit 1
@@ -151,11 +151,11 @@ case $mode in
       exec_tool sudo /usr/local/sbin/kvm_services stop
       exec_tool sudo /usr/local/sbin/kvm_services stopnet
   ;;
-  up)
+  netup)
       echo "Connect network cable"
       exec_tool virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 up
   ;;
-  down)
+  netdown)
       echo "Pull (unconnect) network cable"
       exec_tool virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 down
   ;;
@@ -164,7 +164,7 @@ case $mode in
       exec_tool qemu-system-x86_64 \
          -hda /home/virtualbox/kvm/Win_98.qcow2 \
          -audiodev pa,id=snd \
-          -machine pcspk-audiodev=snd \
+         -machine pcspk-audiodev=snd \
          -device ac97,audiodev=snd \
          -m size=512M \
          -vga cirrus \
