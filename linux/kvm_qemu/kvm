@@ -49,7 +49,6 @@ Mode
   stop: Stop services, network and firehol routing
   netup: Connect network cable on virtual machine
   netdown: Disconnect network cable from virtual machine
-  win98, w98: Start Windows98 in QEMU
 
 Options
   -t, --test, --dry-run: Dry run, only echo commands
@@ -99,7 +98,7 @@ get_options() {
 	  help_text
           exit 0
         ;;
-        start|startnet|localnet|internet|stop|netup|netdown|w98|win98)
+        start|startnet|localnet|internet|stop|netup|netdown)
 	  if [[ -n $mode ]]; then
   	     echo "Multiple mode statements! See help text for usage"
    	     exit 1
@@ -158,20 +157,6 @@ case $mode in
   netdown)
       echo "Pull (unconnect) network cable"
       exec_tool virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 down
-  ;;
-  w98|win98)
-      echo "Starting Windows98 with qemu, Starcraft CD inserted"
-      exec_tool qemu-system-x86_64 \
-         -hda /home/virtualbox/kvm/Win_98.qcow2 \
-         -audiodev pa,id=snd \
-         -machine pcspk-audiodev=snd \
-         -device ac97,audiodev=snd \
-         -m size=512M \
-         -vga cirrus \
-         -parallel none \
-         -rtc base=localtime \
-         -cdrom /home/virtualbox/kvm/iso/starcraft.iso \
-         -boot c
   ;;
   *)
       # No mode
