@@ -18,7 +18,7 @@
 
 # ------------------------------------------------------------------------------
 
-# *** Settings ***
+# *** Settings and Variables ***
 # Treat uninitialised variable as error and exit script
 set -u
 # Test mode: True when defined (only echo commands)
@@ -27,6 +27,8 @@ declare TESTMODE
 readonly PRGNAME=${0##*/}
 # Mode, selected from command line
 declare mode=""
+# Function return value
+declare RETURNVAL
 
 # ------------------------------------------------------------------------------
 
@@ -35,7 +37,7 @@ declare mode=""
 readonly EXEC_DO_NO_ABORT_ON_ERROR=false
 source ${BASH_SOURCE[0]%/*}/public/bash-functions
 
-# *** Functions ***
+# *** Help Text
 function help_text() {
 cat<<EOF
 Prepare or Stop VM service
@@ -62,7 +64,7 @@ Notes:
 EOF
 }
 
-# Print Versionstring
+# *** Print Versionstring
 function versionstring () {
 declare -r VER=0.1.0
 cat<<EOF
@@ -71,6 +73,29 @@ $PRGNAME version $VER
 Licensed under the GNU General Public License
 
 EOF
+}
+
+# *** Return running domain name - error when not one
+function domain_running() {
+    # Domain names
+    declare -a domains
+    # True: Found at least one domain
+    local found=0
+    while IFS='\n' read -r lin; do
+	# Ignore empty lines, otherwise add to array
+	if [[ -n "$lin" ]]; then
+	    found=1
+	    domains+=("$lin")
+	fi
+    done < <(virsh --connect=qemu:///system list --name --state-running)
+    if [[ $found -eq 0 ]] ; then
+       echo "No running domain found!"
+       exit 1
+    elif [[ ${#domains[@]} -ne 1 ]]; then
+       echo "Expected one running domain, got ${#domains[@]} (${domains[@]})!"
+       exit 1
+    fi
+    RETURNVAL="${domains[0]}"
 }
 
 # ------------------------------------------------------------------------------
@@ -150,13 +175,13 @@ case $mode in
       exec_tool sudo /usr/local/sbin/kvm_services stop
       exec_tool sudo /usr/local/sbin/kvm_services stopnet
   ;;
-  netup)
-      echo "Connect network cable"
-      exec_tool virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 up
-  ;;
-  netdown)
-      echo "Pull (unconnect) network cable"
-      exec_tool virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 down
+  netup|netdown)
+      netmode=${mode#net}
+      echo "Network cable $netmode (up: Plug cable, down: Pull cable)"
+      domain_running    # Get running domain in variable RETURNVAL
+      exec_tool virsh --connect=qemu:///system domif-setlink \
+		"$RETURNVAL" vnet0 $netmode
+      unset netmode
   ;;
   *)
       # No mode
