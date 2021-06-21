@@ -172,8 +172,8 @@ Configuration changes
        - Remove Autostart/On Boot for all
    - `virsh --connect=qemu:///system edit Windows_10`
      - Source: [https://blog.geierb.de/mehr-geschwindigkeit-bei-windows-10-in-libvirtkvm/](https://blog.geierb.de/mehr-geschwindigkeit-bei-windows-10-in-libvirtkvm/)
-     - Increase video memory:  <video> / <model type='qxl' / vgamem='16384' --> vgamem='32768' or '65536'
-     - Enable HPET:  <clock offset='localtime'> / <timer name='hpet' present='no' --> present='yes'
+     - Increase video memory:  video / model type='qxl' / vgamem='16384' --> vgamem='32768' or '65536'
+     - Enable HPET:  clock offset='localtime' / timer name='hpet' present='no' --> present='yes'
 1. Networking NAT
    - Check for Leases and addresses
      ```
@@ -231,7 +231,7 @@ Configuration changes
 
 Selected commands
 
-- Edit XML configuration file
+- Edit XML configuration file  
     virsh --connect=qemu:///system edit Windows_10
 - List of domains (i.e. virtual machines)  
     virsh --connect=qemu:///system list --all
