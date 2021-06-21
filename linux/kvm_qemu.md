@@ -34,6 +34,8 @@ Packages to install
 - qemu-system-x86 # Satisfies recommendation of libvirt-daemon
   - From buster-backports
   - All recommended, but not ovmf
+  - This should install these packages:  
+    qemu-system-common qemu-system-data qemu-system-gui qemu-system-x86 qemu-utils
 
 
 ### System Setup
@@ -168,6 +170,10 @@ Configuration changes
        - Delete installation media
      - Virtual Networks
        - Remove Autostart/On Boot for all
+   - `virsh --connect=qemu:///system edit Windows_10`
+     - Source: [https://blog.geierb.de/mehr-geschwindigkeit-bei-windows-10-in-libvirtkvm/](https://blog.geierb.de/mehr-geschwindigkeit-bei-windows-10-in-libvirtkvm/)
+     - Increase video memory:  <video> / <model type='qxl' / vgamem='16384' --> vgamem='32768' or '65536'
+     - Enable HPET:  <clock offset='localtime'> / <timer name='hpet' present='no' --> present='yes'
 1. Networking NAT
    - Check for Leases and addresses
      ```
@@ -196,12 +202,11 @@ Configuration changes
        New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
        ```
    - Access: ssh username@192.168.122.96
-1. Optional: Access host's CD/DVD drive from Windows_10 guest
+1. Optional: Access host's CD/DVD drive or ISO images from Windows_10 guest
    - Power down VM
    - In virt-manager Add Hardware: Storage
      - Device type: CDROM
-   - In running VM, select the disk in the SATA CDROM setup
-     - ISO files can be also loaded by adding them to the storage pool
+
 
 ### Configuration Files
 
@@ -213,10 +218,21 @@ Configuration changes
   - Snapshots: /var/lib/libvirt/qemu/snapshot/
 
 
+###  virt-manager Usage
+
+- Mount CDROM/DVD or ISO images
+  - In running VM: View/Details
+  - In the CDROM setup select the ISO or device file
+    - ISO files can be also loaded by adding them to the storage pool
+    - Can be used as shortcut
+
+
 ### Virsh Command Line Management Interface
 
 Selected commands
 
+- Edit XML configuration file
+    virsh --connect=qemu:///system edit Windows_10
 - List of domains (i.e. virtual machines)  
     virsh --connect=qemu:///system list --all
 - Network Status  
@@ -234,6 +250,13 @@ Selected commands
 - Check for Leases and addresses  
     virsh --connect=qemu:///system  net-dhcp-leases default  
     virsh --connect=qemu:///system  domifaddr Windows_10 --full
+
+
+### Further Documentation
+
+- Domain XML file: [https://libvirt.org/formatdomain.html](https://libvirt.org/formatdomain.html)
+
+
 
 ### Direct QVM Usage
 
