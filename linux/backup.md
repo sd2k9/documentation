@@ -39,7 +39,7 @@ This is usually the case for virtual machine disk image files.
 
 ##### External Disk
 1. Take a external drive and partition it appropriately, e.g. with `cfdisk` or any
-   GUI applocation of your choice
+   GUI application of your choice
    - Placeholder of the partition device file: DISKPART
 1. Create encrypted file sytem and open it  
    `sudo cryptsetup luksFormat --type luks2 DISKPART   # Enter a safe password here`
