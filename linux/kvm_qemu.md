@@ -15,7 +15,9 @@ lack a few pieces of the puzzle, which I had to find somewhere else.
 
 That's why I (hopefully) collected everything here, for the next to use.
 
-Base System/Tested with: Debian 10 (Buster) Stable with Backports enabled
+Base System/tested with
+- Debian 10 (Buster) Stable with Backports enabled
+- Updated for Debian 11 (Bullseye)
 
 The guides I used as starting point were
 - [https://getlabsdone.com/install-windows-10-on-ubuntu-kvm/](https://getlabsdone.com/install-windows-10-on-ubuntu-kvm/)
@@ -42,6 +44,7 @@ Packages to install
 
 Add user to libvirt group
 - adduser YOUR_USERNAME libvirt
+  - The group name is configured in /etc/libvirt/libvirtd.conf:unix_sock_group
 - Relogin
 
 When installed dnsmasq and not used, disable it
@@ -70,6 +73,9 @@ start virtualisation support on demand
   /usr/local/sbin/kvm_services
 1. Allow sudo invocation without password  
    YOUR_USERNAME   ALL = NOPASSWD: /usr/local/sbin/kvm_services
+1. Call once to stop all system services  
+   sudo /usr/local/sbin/kvm_services stop
+   sudo /usr/local/sbin/kvm_services disable
 1. Put user control script [kvm_qemu/kvm](kvm_qemu/kvm)
    to a location excutable from the user, e.g. ~/bin/kvm
    - You'll need the [bash-functions](https://github.com/sd2k9/tools/blob/master/bash-functions) too
@@ -90,6 +96,7 @@ Configuration changes
   ```
   # Enable default confinement
   security_default_confined = 1
+  security_require_confined = 1
   ```
 - /etc/libvirt/qemu.conf
   ```
@@ -223,9 +230,13 @@ Configuration changes
 - Mount CDROM/DVD or ISO images
   - In running VM: View/Details
   - In the CDROM setup select the ISO or device file
-    - ISO files can be also loaded by adding them to the storage pool
+    - The directory is automatically added to the storage pool
+    - Delete afterwards when this is not wanted  
+      virt-manager Main Screen / Edit / Connection Details / Storage
+  - ISO files can be also directly loaded from a
+    (newly created or existing) storage pool
     - Can be used as shortcut
-
+- Redirect USB device to client: Virtual Machine / Redirect USB Device
 
 ### Virsh Command Line Management Interface
 
@@ -237,9 +248,10 @@ Selected commands
     virsh --connect=qemu:///system list --all
 - Network Status  
     virsh --connect=qemu:///system net-list
-- Start/Stop default network connection  
+- Start/Stop/Edit default network connection  
     virsh --connect=qemu:///system net-start default  
-    virsh --connect=qemu:///system net-destroy default
+    virsh --connect=qemu:///system net-destroy default  
+    virsh --connect=qemu:///system  net-edit default
 - List network interfaces for domain  
     virsh --connect=qemu:///system domiflist Windows_10
 - Network cable plug status  
@@ -255,7 +267,7 @@ Selected commands
 ### Further Documentation
 
 - Domain XML file: [https://libvirt.org/formatdomain.html](https://libvirt.org/formatdomain.html)
-
+  - All other XML files: [https://libvirt.org/format.html](https://libvirt.org/format.html)
 
 
 ### Direct QVM Usage
@@ -300,5 +312,17 @@ Change CDROM in running system
 - `change ide1-cd0 cdromimage.iso`
 
 More monitor commands
-- [https://en.wikibooks.org/wiki/QEMU/Monitor](https://en.wikibooks.org/wiki/QEMU/Monitor)
-- Or in monitor: help
+- In monitor: help
+- Outdated: [https://en.wikibooks.org/wiki/QEMU/Monitor](https://en.wikibooks.org/wiki/QEMU/Monitor)
+
+### Errors
+
+- When a VM does not start with an error like  
+  `apparmore profile libvirt-XXX is missing`  
+  and there really is no such file in the directory `/etc/apparmor.d/libvirt/`
+  then possibly the invocation of virt-aa-helper failed
+  - This can happen when the VM XML file is broken in a way that virt-xml-validate
+    doesn't detect the error
+  - Try reproducing this behaviour by bisecting the XML file and feed it to
+    virt-aa-helper manually
+  - Call: `/usr/lib/libvirt/virt-aa-helper --create --uuid libvirt-UUID_FROM_XML_FILE < /etc/libvirt/qemu/Windows_10-COPY.xml`

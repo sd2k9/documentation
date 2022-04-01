@@ -67,7 +67,7 @@ get_options() {
       opt="$1"
       shift
       case $opt in
-        start|stop|localnet|internet|stopnet)
+        start|stop|disable|localnet|internet|stopnet)
           mode="$opt"
         ;;
         *)
@@ -99,18 +99,27 @@ fi
 # *** Now execute actions, or done above
 
 case $mode in
-  start|stop)
-     echo "$mode services"
-     exec_tool systemctl $mode \
-        libvirt-guests.service \
-        libvirtd.service \
-        virt-guest-shutdown.target \
-        virtlockd-admin.socket \
-        virtlockd.service \
-        virtlockd.socket \
-        virtlogd-admin.socket \
-        virtlogd.service \
-        virtlogd.socket
+  start|stop|disable)
+      # Build services list
+      services="libvirtd.service virtlockd.service virtlogd.service"
+      # Needed for start also? Disable for now: virt-guest-shutdown.target
+      # For stop or disable list all services
+      if [[ "$mode" != "start" ]]; then
+          services="$services \
+              libvirtd-admin.socket \
+              libvirtd-ro.socket \
+              libvirtd.socket \
+              virtlockd.socket \
+              virtlockd-admin.socket \
+              virtlogd.socket \
+              virtlogd-admin.socket \
+              libvirt-guests.service \
+              libvirtd-tcp.socket \
+              libvirtd-tls.socket \
+              virt-guest-shutdown.target"
+      fi
+      echo "$mode services"
+      exec_tool systemctl $mode $services
   ;;
   localnet)
     echo "Firewall: Local access, no outwards network routing"
