@@ -246,7 +246,7 @@ Configuration changes
 - Redirect USB device to client: Virtual Machine / Redirect USB Device
 - No background operation: --no-fork
 - Show running VM  
-  virt-manager --connect=qemu:///system --show-domain-console VMNAME
+  `virt-manager --connect=qemu:///system --show-domain-console VMNAME`
 
 
 
@@ -259,7 +259,7 @@ Selected commands
 - List/Start of domains (i.e. virtual machines)  
     virsh --connect=qemu:///system list --all  
     virsh --connect=qemu:///system start Windows_10  
-    See [virt-manager Usage](##virt-manager-usage) for showing the VM also
+    See [virt-manager Usage](#virt-manager-usage) for showing the VM also
 - Network Status  
     virsh --connect=qemu:///system net-list
 - Start/Stop/Edit default network connection  
