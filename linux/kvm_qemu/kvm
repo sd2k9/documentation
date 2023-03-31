@@ -25,6 +25,8 @@ set -u
 declare TESTMODE
 # Program name
 readonly PRGNAME=${0##*/}
+# VM for starting etc.
+readonly VMNAME="Windows_10"
 # Mode, selected from command line
 declare mode=""
 # Function return value
@@ -49,8 +51,11 @@ Mode
   localnet: Reconfigure firewall for local routing
   internet: Reconfigure firewall for internet routing
   stop: Stop services, network and firehol routing
+
   netup: Connect network cable on virtual machine
   netdown: Disconnect network cable from virtual machine
+
+  vmstart: Start and display VM $VMNAME
 
 Options
   -t, --test, --dry-run: Dry run, only echo commands
@@ -123,7 +128,7 @@ get_options() {
 	  help_text
           exit 0
         ;;
-        start|startnet|localnet|internet|stop|netup|netdown)
+        start|startnet|localnet|internet|stop|netup|netdown|vmstart)
 	  if [[ -n $mode ]]; then
   	     echo "Multiple mode statements! See help text for usage"
    	     exit 1
@@ -182,6 +187,11 @@ case $mode in
       exec_tool virsh --connect=qemu:///system domif-setlink \
 		"$RETURNVAL" vnet0 $netmode
       unset netmode
+  ;;
+  vmstart)
+      echo "Start and display VM $VMNAME"
+      exec_tool virsh --connect=qemu:///system start \"${VMNAME}\"
+      exec_tool virt-manager --connect=qemu:///system  --show-domain-console \"${VMNAME}\"
   ;;
   *)
       # No mode

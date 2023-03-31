@@ -182,6 +182,13 @@ Configuration changes
      - Increase video memory:  video / model type='qxl' / vgamem='16384' --> vgamem='32768' or '65536'
      - Enable HPET:  clock offset='localtime' / timer name='hpet' present='no' --> present='yes'
 1. Networking NAT
+   - Force IP address to 192.168.122.96 for Windows 10 machine, because thats
+     what the firewall rules are written for
+     ```
+     virsh --connect=qemu:///system  net-edit default
+     # Add in dhcp section, update MAC address and name accordingly
+     <host mac='52:54:00:5f:ff:8e' name='win10' ip='192.168.122.96' />
+     ```
    - Check for Leases and addresses
      ```
      virsh --connect=qemu:///system  net-dhcp-leases default
@@ -225,7 +232,7 @@ Configuration changes
   - Snapshots: /var/lib/libvirt/qemu/snapshot/
 
 
-###  virt-manager Usage
+### virt-manager Usage
 
 - Mount CDROM/DVD or ISO images
   - In running VM: View/Details
@@ -237,6 +244,11 @@ Configuration changes
     (newly created or existing) storage pool
     - Can be used as shortcut
 - Redirect USB device to client: Virtual Machine / Redirect USB Device
+- No background operation: --no-fork
+- Show running VM  
+  virt-manager --connect=qemu:///system --show-domain-console VMNAME
+
+
 
 ### Virsh Command Line Management Interface
 
@@ -244,8 +256,10 @@ Selected commands
 
 - Edit XML configuration file  
     virsh --connect=qemu:///system edit Windows_10
-- List of domains (i.e. virtual machines)  
-    virsh --connect=qemu:///system list --all
+- List/Start of domains (i.e. virtual machines)  
+    virsh --connect=qemu:///system list --all  
+    virsh --connect=qemu:///system start Windows_10  
+    See [virt-manager Usage](##virt-manager-usage) for showing the VM also
 - Network Status  
     virsh --connect=qemu:///system net-list
 - Start/Stop/Edit default network connection  
@@ -264,10 +278,26 @@ Selected commands
     virsh --connect=qemu:///system  domifaddr Windows_10 --full
 
 
-### Further Documentation
+### Further Commands and Documentation
 
+- Libvirt Schemas: /usr/share/libvirt/schemas
+  - Validate with virt-xml-validate
+  - Automatically done when editing XML files with virsh
 - Domain XML file: [https://libvirt.org/formatdomain.html](https://libvirt.org/formatdomain.html)
   - All other XML files: [https://libvirt.org/format.html](https://libvirt.org/format.html)
+
+
+### Windows XP Notes
+
+- Installation not tried, here are some notes for reference
+-  If the OS supports multiple CPUs, then you should install it with 2 CPUs
+   (or more) available. WinXP will install with either 1 or 2 CPU support in
+   the HAL. If you install with 1 CPU/Core, then you are basically stuck with
+  1 CPU until a reinstall. That isn’t really true, but the steps to enable a
+  second CPU is non-trivial. Reinstalling the OS is much easier.
+- https://wiki.linuxmuster.net/archiv/anwenderwiki:virtualisierung:kvm:kvm_winxp
+- https://pve.proxmox.com/wiki/Windows_XP_Guest_Notes
+- https://wiki.gentoo.org/wiki/QEMU/Windows_guest
 
 
 ### Direct QVM Usage
@@ -293,10 +323,26 @@ Invocation
   `-cdrom win98se.iso [-boot d]`
 - Install with boot disk  
   `-boot a -fda disk01.img -cdrom Win95_OSR25.iso`
+- Better mouse performance without mouse capture  
+  `-usb -device usb-tablet`
+
+Reduce image file size by unsparsing and compressing contents
+- Attention: Snapshots are lost, so remove beforehand
+  - Or afterwards from directory /var/lib/libvirt/qemu/snapshot/
+- Compression is read-only, that is file modifications or new files
+  are uncompressed
+- `qemu-img convert -O qcow2 -c -p -m 8 image.qcow2_backup image.qcow2`
+  - Compress: `-c`
+  - Progress bar: `-p`
+  - 8 parallel instances: `-m 8`
+- Automation with `virt-sparsify` from paket libguestfs-tools
+- More information
+  - https://pve.proxmox.com/wiki/Shrink_Qcow2_Disk_Files
+  - https://kofler.info/wie-ich-ein-qcow2-image-auf-ein-drittel-geschrumpft-habe/
 
 Snapshots
 - Information about disk file  
-  `qemu-img info [--backing-chain] diskimage.qcow2`
+  `qemu-img info --backing-chain diskimage.qcow2`
 - Manage snapshots  
   `qemu-img snapshot CMD diskimage.qcow2`
    - List:   `-l`
@@ -311,8 +357,13 @@ Change CDROM in running system
 - `eject ide1-cd0`
 - `change ide1-cd0 cdromimage.iso`
 
+Networking Guides
+- https://wiki.qemu.org/Documentation/Networking
+- https://en.wikibooks.org/wiki/QEMU/Networking
+
 More monitor commands
 - In monitor: help
+- info network: Network setup
 - Outdated: [https://en.wikibooks.org/wiki/QEMU/Monitor](https://en.wikibooks.org/wiki/QEMU/Monitor)
 
 ### Errors
