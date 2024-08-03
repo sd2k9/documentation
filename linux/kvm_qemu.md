@@ -252,30 +252,54 @@ Configuration changes
 
 ### Virsh Command Line Management Interface
 
-Selected commands
+Selected domain (i.e. virtual machine) commands
 
 - Edit XML configuration file  
     virsh --connect=qemu:///system edit Windows_10
-- List/Start of domains (i.e. virtual machines)  
+- Show XML configuration file  
+    virsh --connect=qemu:///system dumpxml Windows_10
+- List/Start of domains 
     virsh --connect=qemu:///system list --all  
     virsh --connect=qemu:///system start Windows_10  
     See [virt-manager Usage](#virt-manager-usage) for showing the VM also
+- Change device configurations of a running domain  
+  virsh --connect=qemu:///system update-device Windows_10 FILE.xml --live
+
+Selected network commands
+
 - Network Status  
     virsh --connect=qemu:///system net-list
 - Start/Stop/Edit default network connection  
     virsh --connect=qemu:///system net-start default  
     virsh --connect=qemu:///system net-destroy default  
-    virsh --connect=qemu:///system  net-edit default
+    virsh --connect=qemu:///system net-edit default
 - List network interfaces for domain  
     virsh --connect=qemu:///system domiflist Windows_10
 - Network cable plug status  
     virsh --connect=qemu:///system domif-getlink Windows_10 vnet0
 - Connect/Disconnect network cable  
     virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 up  
-    virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 down
+    virsh --connect=qemu:///system domif-setlink Windows_10 vnet0 down  
+    These commands are failing in Debian 12 Bookworm, see below for Woraround
 - Check for Leases and addresses  
     virsh --connect=qemu:///system  net-dhcp-leases default  
     virsh --connect=qemu:///system  domifaddr Windows_10 --full
+
+Failing "Connect/Disconnect network cable" in Debian 12 Bookworm
+
+- Error message simiar to  
+  ```error: Failed to update interface link state
+     error: (device_definition):6: Attribute state redefined
+            <link state="down" state="down"/>
+      -------------------------------------^
+   ```
+- The command generates and tries to apply faulty XML.
+- Known bug: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1075718
+- Workaround: Manually update configuration
+- Execute command with argument "--print-xml"
+- Fix double "state" tags in "link" entry
+- Apply to running VM, e.g. 
+  virsh --connect=qemu:///system update-device Windows_10 up.xml --live
 
 
 ### Further Commands and Documentation
@@ -300,9 +324,9 @@ Selected commands
 - https://wiki.gentoo.org/wiki/QEMU/Windows_guest
 
 
-### Direct QVM Usage
+### Direct QEMU Usage
 
-When you're using QVM directly (should not be needed for this guide)
+When you're using QEMU directly (should not be needed for this guide)
 here some notes.
 
 Invocation
