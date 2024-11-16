@@ -82,10 +82,9 @@ start virtualisation support on demand
 1. When using firehol as your firewall, allow routing to enjoy internet connection by
    adding the content of the file [kvm_qemu/firehol-addon.conf](kvm_qemu/firehol-addon.conf)
    to your /etc/firehol/firehol.conf
-   - Make sure that `FIREHOL_RULESET_MODE="accurate"`
-     is set /etc/firehol/firehol-defaults.conf
-     - Otherwise DHCP server traffic for KVM/Windows machine
-       may be blocked and no IP address can be assigned
+   - It also overrides `FIREHOL_RULESET_MODE` to `accurate"`,
+     otherwise DHCP server traffic for KVM/Windows machine
+     is blocked and no IP address can be assigned.
 1. Start everything with: `kvm start`
 1. Stop with: `kvm stop`
 1. Show more commands with: `kvm --help`
@@ -284,22 +283,6 @@ Selected network commands
 - Check for Leases and addresses  
     virsh --connect=qemu:///system  net-dhcp-leases default  
     virsh --connect=qemu:///system  domifaddr Windows_10 --full
-
-Failing "Connect/Disconnect network cable" in Debian 12 Bookworm
-
-- Error message simiar to  
-  ```error: Failed to update interface link state
-     error: (device_definition):6: Attribute state redefined
-            <link state="down" state="down"/>
-      -------------------------------------^
-   ```
-- The command generates and tries to apply faulty XML.
-- Known bug: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1075718
-- Workaround: Manually update configuration
-- Execute command with argument "--print-xml"
-- Fix double "state" tags in "link" entry
-- Apply to running VM, e.g. 
-  virsh --connect=qemu:///system update-device Windows_10 up.xml --live
 
 
 ### Further Commands and Documentation

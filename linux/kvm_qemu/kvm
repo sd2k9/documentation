@@ -187,8 +187,6 @@ case $mode in
       exec_tool virsh --connect=qemu:///system domif-setlink \
 		"$RETURNVAL" vnet0 $netmode
       unset netmode
-      echo "When failing, known bug in 9.0.0: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1075718"
-      echo "See ../kvm_qemu.md for Workaround"
   ;;
   vmstart)
       echo "Start and display VM $VMNAME"
