@@ -99,6 +99,8 @@ Configuration changes
   ```
 - /etc/libvirt/qemu.conf
   ```
+  # Default security driver
+  security_driver = "apparmor"
   # Compress save images
   save_image_format = "bzip2"
   snapshot_image_format = "bzip2"
@@ -257,7 +259,7 @@ Selected domain (i.e. virtual machine) commands
     virsh --connect=qemu:///system edit Windows_10
 - Show XML configuration file  
     virsh --connect=qemu:///system dumpxml Windows_10
-- List/Start of domains 
+- List/Start of domains  
     virsh --connect=qemu:///system list --all  
     virsh --connect=qemu:///system start Windows_10  
     See [virt-manager Usage](#virt-manager-usage) for showing the VM also
@@ -283,6 +285,64 @@ Selected network commands
 - Check for Leases and addresses  
     virsh --connect=qemu:///system  net-dhcp-leases default  
     virsh --connect=qemu:///system  domifaddr Windows_10 --full
+
+Selected storage commands
+
+- Configuration directory: /etc/libvirt/storage
+- List all pools  
+   virsh  --connect=qemu:///system pool-list --all
+- Remove a pool  
+   virsh  --connect=qemu:///system pool-destroy POOLNAME  
+   virsh  --connect=qemu:///system pool-undefine POOLNAME
+
+Selected device commands
+- Attach or detach a host device to {configuration file|running} VM  
+  virsh --connect=qemu:///system {detach-device|attach-device} Windows_10 {--config|--live} /dev/stdin <<END
+  XML ADDITION-OR-DELETION
+  END
+
+
+### Host Device Forwarding
+Dynamic USB Device Attachment
+- Select command in running VM window menu to attach USB device from host
+
+Manual add USB device
+- In Virt-Manager VM configuration: Add Hardware / USB Host Device
+- You can't forward an USB hub and it's devices.
+  - If you forward the hub then still the devices plugged into it are catched by the host
+- XML for adding USB device by vendor and product ID  
+  ```<hostdev mode='subsystem' type='usb' managed='yes'>
+    <source startupPolicy='optional'>
+      <vendor id='0x1234'/>
+      <product id='0xbeef'/>
+    </source>
+    <boot order='2'/>
+  </hostdev>
+  ```
+- XML for adding USB device by bus and device ID  
+  ```<hostdev mode='subsystem' type='usb'>
+    <source startupPolicy='optional'>
+      <address bus='1' device='1'/>
+    </source>
+  </hostdev>
+  ```
+
+PCI Forwarding
+- Can use for example with USB host when USB device change it's type during operation.
+  - This usually causes trouble/don't work when using virt-manager's USB forwarding feature.
+  - Src: https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF#Passing_through_other_devices
+  - List USB Bus, PCI Device and IOMMU Groups  
+    `for usb_ctrl in /sys/bus/pci/devices/*/usb*; do pci_path=${usb_ctrl%/*}; iommu_group=$(readlink $pci_path/iommu_group); echo "Bus $(cat $usb_ctrl/busnum) --> ${pci_path##*/} (IOMMU group ${iommu_group##*/})"; lsusb -s ${usb_ctrl#*/usb}:; echo; done`
+- Need to forward all PCI members of IOMMU group; Check with:  
+  ```shopt -s nullglob
+  for g in $(find /sys/kernel/iommu_groups/* -maxdepth 0 -type d | sort -V); do
+    echo "IOMMU Group ${g##*/}:"
+    for d in $g/devices/*; do
+        echo -e "\t$(lspci -nns ${d##*/})"
+    done;
+  done;
+  ```
+- In Virt-Manager VM configuration: Add Hardware / PCI/PCI Host device
 
 
 ### Further Commands and Documentation
@@ -347,6 +407,10 @@ Reduce image file size by unsparsing and compressing contents
   - https://pve.proxmox.com/wiki/Shrink_Qcow2_Disk_Files
   - https://kofler.info/wie-ich-ein-qcow2-image-auf-ein-drittel-geschrumpft-habe/
 
+Convert Virtualbox VDI (or any other) disk images to QCOW2
+- `qemu-img convert -O qcow2 -p -m 8 image-in.vdi image-out.qcow2`
+  - Optional compression: `-c`
+
 Snapshots
 - Information about disk file  
   `qemu-img info --backing-chain diskimage.qcow2`
@@ -372,6 +436,7 @@ More monitor commands
 - In monitor: help
 - info network: Network setup
 - Outdated: [https://en.wikibooks.org/wiki/QEMU/Monitor](https://en.wikibooks.org/wiki/QEMU/Monitor)
+
 
 ### Errors
 
