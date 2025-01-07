@@ -297,9 +297,11 @@ Selected storage commands
 
 Selected device commands
 - Attach or detach a host device to {configuration file|running} VM  
+  ```
   virsh --connect=qemu:///system {detach-device|attach-device} Windows_10 {--config|--live} /dev/stdin <<END
   XML ADDITION-OR-DELETION
   END
+  ```
 
 
 ### Host Device Forwarding
@@ -311,7 +313,8 @@ Manual add USB device
 - You can't forward an USB hub and it's devices.
   - If you forward the hub then still the devices plugged into it are catched by the host
 - XML for adding USB device by vendor and product ID  
-  ```<hostdev mode='subsystem' type='usb' managed='yes'>
+  ```
+  <hostdev mode='subsystem' type='usb' managed='yes'>
     <source startupPolicy='optional'>
       <vendor id='0x1234'/>
       <product id='0xbeef'/>
@@ -320,7 +323,8 @@ Manual add USB device
   </hostdev>
   ```
 - XML for adding USB device by bus and device ID  
-  ```<hostdev mode='subsystem' type='usb'>
+  ```
+  <hostdev mode='subsystem' type='usb'>
     <source startupPolicy='optional'>
       <address bus='1' device='1'/>
     </source>
@@ -334,7 +338,8 @@ PCI Forwarding
   - List USB Bus, PCI Device and IOMMU Groups  
     `for usb_ctrl in /sys/bus/pci/devices/*/usb*; do pci_path=${usb_ctrl%/*}; iommu_group=$(readlink $pci_path/iommu_group); echo "Bus $(cat $usb_ctrl/busnum) --> ${pci_path##*/} (IOMMU group ${iommu_group##*/})"; lsusb -s ${usb_ctrl#*/usb}:; echo; done`
 - Need to forward all PCI members of IOMMU group; Check with:  
-  ```shopt -s nullglob
+  ```
+  shopt -s nullglob
   for g in $(find /sys/kernel/iommu_groups/* -maxdepth 0 -type d | sort -V); do
     echo "IOMMU Group ${g##*/}:"
     for d in $g/devices/*; do
