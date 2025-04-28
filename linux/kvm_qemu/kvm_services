@@ -2,6 +2,9 @@
 # Function: Start and stop services required for running KVM/QEMU virtual machines
 #           See kvm for caller
 #
+#           And some special services which must run as root:
+#           nettxlen: Increase the Transmit Queue Length for network Interfaces of running domains
+#
 # Installation & Setup:
 # - Copy the file into the directory /usr/local/sbin and make it executable
 # - You can add it to sudo with NOPASSWD option, so you can execute the command without password
@@ -67,7 +70,7 @@ get_options() {
       opt="$1"
       shift
       case $opt in
-        start|stop|disable|localnet|internet|stopnet)
+        start|stop|disable|localnet|internet|stopnet|nettxlen)
           mode="$opt"
         ;;
         *)
@@ -138,6 +141,17 @@ case $mode in
   stopnet)
       echo "Firewall: Remove network routing"
       firehol_reconfig
+  ;;
+  nettxlen)
+      echo "Increase the Transmit Queue Length for network Interfaces of running domains"
+      for dom in $(virsh --connect=qemu:///system list --state-running --name); do
+	  echo -n "   Domain $dom:"
+	  for netdev in $(virsh --connect=qemu:///system domiflist $dom | tail +3  | awk '!/^$/ {print $1}'); do
+	      echo -n " $netdev"
+	      ip link set $netdev txqueuelen 4096
+	  done
+	  echo
+      done
   ;;
   *)
       # No mode
