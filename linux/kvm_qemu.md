@@ -412,6 +412,14 @@ Reduce image file size by unsparsing and compressing contents
   - https://pve.proxmox.com/wiki/Shrink_Qcow2_Disk_Files
   - https://kofler.info/wie-ich-ein-qcow2-image-auf-ein-drittel-geschrumpft-habe/
 
+Resize qcow2 disk image
+1. Make a backup
+1. Delete all snapshots, see below or in virt-manager
+1. Optional "Reduce image file size by unsparsing and compressing contents" (see above)
+1. Add more disk space `qemu-img resize IMAGE.qcow2 +20G`
+1. Resize disk with guest tools
+   - Windows: "Disk Management" utility, Right click on C:, "Extend Volume"
+
 Convert Virtualbox VDI (or any other) disk images to QCOW2
 - `qemu-img convert -O qcow2 -p -m 8 image-in.vdi image-out.qcow2`
   - Optional compression: `-c`
