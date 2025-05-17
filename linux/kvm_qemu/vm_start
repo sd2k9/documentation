@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# Example VM starter script. Modify appropriately
+
+# Settings
+# VM Name
+readonly VMNAME=VMNAME
+
+# Start KVM services, disable when permanently enabled
+echo "Setup kvm ..."
+kvm start
+
+# Start Virtual machine
+echo "Starting virtual machine $VMNAME ..."
+
+# Libvirt KVM
+# Networks, not needed for NAT
+virsh --connect=qemu:///system net-start hostonly
+virsh --connect=qemu:///system net-start macvtap0
+
+# Stop networks and KVM services again when exiting
+# Remove "kvm stop" when running multiple VMs in parallel
+# to avoid killing running machines.
+# Execute commands/function on script exit
+trap "virsh --connect=qemu:///system net-destroy hostonly; \
+      virsh --connect=qemu:///system net-destroy macvtap0; \
+      kvm stop" EXIT
+
+# VM
+virsh --connect=qemu:///system start $VMNAME
+
+# Show
+virt-manager --connect=qemu:///system --show-domain-console $VMNAME
+
+
+# Set network tx length
+sleep 10s
+sudo /usr/local/sbin/kvm_services nettxlen
+
+# Follow logs
+journalctl -f -u libvirtd.service
