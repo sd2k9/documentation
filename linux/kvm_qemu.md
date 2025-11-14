@@ -128,6 +128,7 @@ Configuration changes
       - SATA Disk 1/Avanced Options/Disk bus
         - SATA --> VirtIO
         - Optional: Cache mode to writeback for better performance (and less safety)
+        - Optional: Discard mode to "unmap" for automatically shrinking the disk image when space is freed
       - NIC/Device model: e1000e --> virtio
       - Mount VirtIO driver ISO
         - Add Hardware: Storage
@@ -147,7 +148,7 @@ Configuration changes
       - Use QXL as Video driver, otherwise "Auto resize VM with window" (Enable in virt-manager menu View / Scale Display)
       - Increase video memory to support higher resolutions: XML  video / model type='qxl' / vgamem='16384' --> vgamem='65536'
 1. Enable (U)EFI boot
-   1. When Importing from Virtualbox required with setting "System/Enable EFI"
+   1. When Importing from Virtualbox required with setting "System/Enable EFI", Required for Windows 11
    1. Install dependency ovmf
    1. During Setup
       - Overview / Hypervisor Details
@@ -311,32 +312,35 @@ Configuration changes
    - Change the boot disk from SCSI to VirtIO disk
      - May need to remove and re-add it
    - Remove temporary VirtIO storage drive
-1. Enabling Hyper-V enlightenments  
-    Add/Modify the following `<hyperv>` sub-section to the `<features>` section of the XML:  
-    ```
-    <features>
-    [...]
-      <hyperv>
-        <relaxed state='on'/>
-        <vapic state='on'/>
-        <spinlocks state='on' retries='8191'/>
-        <vendor_id state='on' value='KVM Hv'/>
-        <vpindex state='on'/>
-        <runtime state='on' />
-        <synic state='on'/>
-        <stimer state='on'>
-          <direct state='on'/>
-        </stimer>
-        <frequencies state='on'/>
-        <reset state='on'/>
-        <tlbflush state='on'/>
-        <reenlightenment state='on'/>
-        <ipi state='on'/>
-        <evmcs state='on'/>               <!-- Only for Intel! Remove for AMD processors -->
-      </hyperv>
-    [...]
-    </features>
-    ```
+1. Enabling Hyper-V enlightenments
+   - Add/Modify the following `<hyperv>` sub-section to the `<features>` section of the XML:  
+     ```
+     <features>
+     [...]
+       <hyperv>
+         <relaxed state='on'/>
+         <vapic state='on'/>
+         <spinlocks state='on' retries='8191'/>
+         <vendor_id state='on' value='KVM Hv'/>
+         <vpindex state='on'/>
+         <runtime state='on' />
+         <synic state='on'/>
+         <stimer state='on'>
+           <direct state='on'/>
+         </stimer>
+         <frequencies state='on'/>
+         <reset state='on'/>
+         <tlbflush state='on'/>
+         <reenlightenment state='on'/>
+         <ipi state='on'/>
+         <evmcs state='on'/>               <!-- Only for Intel! Remove for AMD processors -->
+       </hyperv>
+     [...]
+     </features>
+     ```
+   - In Windows disable "useplatformclock"  
+     bcdedit /set useplatformclock No
+
 1. Configure VirtIO Network driver parameters
    - In Windows VM Device Manager
    - `Logging.Enable = Disable`
