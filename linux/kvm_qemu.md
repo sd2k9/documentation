@@ -145,8 +145,13 @@ Configuration changes
         - For clipboard sharing with spice-guest-tools
         - Name: "com.redhat.spice.0"
         - Device type: "Spice agent (spicevmc)"
-      - Use QXL as Video driver, otherwise "Auto resize VM with window" (Enable in virt-manager menu View / Scale Display)
-      - Increase video memory to support higher resolutions: XML  video / model type='qxl' / vgamem='16384' --> vgamem='65536'
+      - Use QXL as Video driver, otherwise no "Auto resize VM with window" (Enable in virt-manager menu View / Scale Display)
+        - Als mouse is jumpy/lagging in Windows.
+        - Increase video memory to support higher resolutions, for example  
+          XML  video / model type='qxl'
+          ram="262144" vram="131072" vgamem="131072"
+      - Display Spice / Listen type=None, No OpenGL
+      - Add Tablet (USB) as input device.
 1. Enable (U)EFI boot
    1. When Importing from Virtualbox required with setting "System/Enable EFI", Required for Windows 11
    1. Install dependency ovmf
@@ -164,7 +169,7 @@ Configuration changes
 1. Start network before machine start in virt-manager
    - Win10/Edit/Connection Details/Virtual Networks
    - Start/Stop
-1. Start Installation Windows 10
+1. Start Installation Windows
    - Load file driver from CDROM 2: viostor/w10/amd64
    - Load network driver from CDROM 2: drive/NetKVM/w10/amd64
    - Installation Notes
@@ -231,6 +236,7 @@ Configuration changes
 1. See also [Setup VM and Install Windows 10/11](#setup-vm-and-install-windows-10-11) and
    [KVM Tuning](#kvm-tuning)
 1. Settings / Video / Model=Virtio, 3D acceleration when supported (Linux yes, Windows no)
+   - For 3D in Linux: Settings / Display Spice / Enable OpenGL
 1. Kernel
   - Use linux-image-virtual-*
   - linux-image-kvm not booting
@@ -494,7 +500,7 @@ Selected device commands
      - ip link set macvtap0 up
 
 ##### NAT
-1. Routes all traffic over the host, which acts as DHCP server and router
+1. Routes all traffic over the host, which acts as DHCP server, DNS server and router
   - No direct access to guest from the outside world
 1. When using firehol, allow routing to enjoy internet connection by
    adding the content of the file [kvm_qemu/firehol-addon-nat.conf](kvm_qemu/firehol-addon-nat.conf)
@@ -650,10 +656,7 @@ Resize qcow2 disk image
    - Windows: "Disk Management" utility, Right click on C:, "Extend Volume"
 
 Convert Virtualbox VDI (or any other) disk images to QCOW2
-- `vboxmanage list vms`
-- `vboxmanage export VMNAME -o VMNAME.ova --ovf10`
-- `tar -xvf VMNAME.ova`
-- `qemu-img convert -O qcow2 -p -m 8 VMNAME-disk001.vmdk VMNAME.qcow2`
+- `qemu-img convert -O qcow2 -p -m 8 -c VMNAME.vdi VMNAME.qcow2`
   - Optional compression: `-c`
 
 Snapshots
